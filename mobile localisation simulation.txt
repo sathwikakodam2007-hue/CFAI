@@ -1,0 +1,238 @@
+import tkinter as tk
+from tkinter import messagebox
+import random
+
+class RobotLocalization:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Mobile Robot Localization System")
+        self.root.geometry("1000x700")
+        self.root.configure(bg="#eaf4fc")
+
+        title = tk.Label(
+            root,
+            text="🤖 Mobile Robot Localization Simulator",
+            font=("Arial", 22, "bold"),
+            bg="#eaf4fc",
+            fg="#003366"
+        )
+        title.pack(pady=10)
+
+        self.canvas = tk.Canvas(
+            root,
+            width=850,
+            height=500,
+            bg="white",
+            highlightthickness=2,
+            highlightbackground="black"
+        )
+        self.canvas.pack()
+
+        self.x = 220
+        self.y = 150
+        self.radius = 15
+
+        # Obstacles
+        # ================= HOSPITAL MAP =================
+
+        self.obstacles = []
+
+        # Reception
+        self.canvas.create_rectangle(20, 20, 180, 120,
+                                     fill="#AED6F1", outline="black", width=2)
+        self.canvas.create_text(100, 70,
+                                text="Reception",
+                                font=("Arial", 11, "bold"))
+        self.obstacles.append((20, 20, 180, 120))
+
+        # Waiting Area
+        self.canvas.create_rectangle(250, 20, 450, 120,
+                                     fill="#ABEBC6", outline="black", width=2)
+        self.canvas.create_text(350, 70,
+                                text="Waiting Area",
+                                font=("Arial", 11, "bold"))
+        self.obstacles.append((250, 20, 450, 120))
+
+        # Room 101
+        self.canvas.create_rectangle(20, 180, 180, 280,
+                                     fill="#FAD7A0", outline="black", width=2)
+        self.canvas.create_text(100, 230,
+                                text="Room 101",
+                                font=("Arial", 11, "bold"))
+        self.obstacles.append((20, 180, 180, 280))
+
+        # Room 102
+        self.canvas.create_rectangle(650, 180, 820, 280,
+                                     fill="#FAD7A0", outline="black", width=2)
+        self.canvas.create_text(735, 230,
+                                text="Room 102",
+                                font=("Arial", 11, "bold"))
+        self.obstacles.append((650, 180, 820, 280))
+
+        # Pharmacy
+        self.canvas.create_rectangle(20, 340, 180, 440,
+                                     fill="#F5B7B1", outline="black", width=2)
+        self.canvas.create_text(100, 390,
+                                text="Pharmacy",
+                                font=("Arial", 11, "bold"))
+        self.obstacles.append((20, 340, 180, 440))
+
+        # Laboratory
+        self.canvas.create_rectangle(650, 340, 820, 440,
+                                     fill="#F9E79F", outline="black", width=2)
+        self.canvas.create_text(735, 390,
+                                text="Laboratory",
+                                font=("Arial", 11, "bold"))
+        self.obstacles.append((650, 340, 820, 440))
+
+        # ICU
+        self.canvas.create_rectangle(300, 340, 500, 440,
+                                     fill="#F8C471", outline="black", width=2)
+        self.canvas.create_text(400, 390,
+                                text="ICU",
+                                font=("Arial", 11, "bold"))
+        self.obstacles.append((300, 340, 500, 440))
+
+        # Emergency
+        self.canvas.create_rectangle(20, 460, 250, 500,
+                                     fill="#EC7063", outline="black", width=2)
+        self.canvas.create_text(135, 480,
+                                text="Emergency",
+                                font=("Arial", 11, "bold"))
+        self.obstacles.append((20, 460, 250, 500))
+
+        # Operation Theatre
+        self.canvas.create_rectangle(550, 460, 830, 500,
+                                     fill="#85C1E9", outline="black", width=2)
+        self.canvas.create_text(690, 480,
+                                text="Operation Theatre",
+                                font=("Arial", 11, "bold"))
+        self.obstacles.append((550, 460, 830, 500))
+
+        # Corridor Label
+        self.canvas.create_text(
+            425, 250,
+            text="HOSPITAL CORRIDOR",
+            font=("Arial", 18, "bold"),
+            fill="gray"
+        )
+        # Robot
+        self.robot = self.canvas.create_oval(
+            self.x - self.radius,
+            self.y - self.radius,
+            self.x + self.radius,
+            self.y + self.radius,
+            fill="#1e90ff",
+            outline="navy",
+            width=3
+        )
+
+        # Direction arrow
+        self.arrow = self.canvas.create_line(
+            self.x,
+            self.y,
+            self.x + 20,
+            self.y,
+            width=3,
+            arrow=tk.LAST,
+            fill="blue"
+        )
+
+        self.position_label = tk.Label(
+            root,
+            text=f"Position: ({self.x}, {self.y})",
+            font=("Arial", 14, "bold"),
+            bg="#eaf4fc"
+        )
+        self.position_label.pack(pady=5)
+
+        self.status_label = tk.Label(
+            root,
+            text="Status: Ready",
+            font=("Arial", 13),
+            fg="green",
+            bg="#eaf4fc"
+        )
+        self.status_label.pack()
+
+        frame = tk.Frame(root, bg="#eaf4fc")
+        frame.pack(pady=15)
+
+        tk.Button(frame, text="⬆ UP", width=12,
+                  command=lambda: self.move(0, -20)).grid(row=0, column=1)
+
+        tk.Button(frame, text="⬅ LEFT", width=12,
+                  command=lambda: self.move(-20, 0)).grid(row=1, column=0)
+
+        tk.Button(frame, text="➡ RIGHT", width=12,
+                  command=lambda: self.move(20, 0)).grid(row=1, column=2)
+
+        tk.Button(frame, text="⬇ DOWN", width=12,
+                  command=lambda: self.move(0, 20)).grid(row=2, column=1)
+
+    def check_collision(self, x, y):
+        for x1, y1, x2, y2 in self.obstacles:
+            if x1 <= x <= x2 and y1 <= y <= y2:
+                return True
+        return False
+
+    def move(self, dx, dy):
+
+        noise_x = random.randint(-2, 2)
+        noise_y = random.randint(-2, 2)
+
+        new_x = self.x + dx + noise_x
+        new_y = self.y + dy + noise_y
+
+        # Boundary check
+        if not (20 <= new_x <= 830 and 20 <= new_y <= 480):
+            self.status_label.config(
+                text="⚠ Boundary Reached!",
+                fg="orange"
+            )
+            return
+
+        # Obstacle check
+        if self.check_collision(new_x, new_y):
+            self.status_label.config(
+                text="🚫 Obstacle Detected! Robot Stopped",
+                fg="red"
+            )
+            messagebox.showwarning(
+                "Obstacle Detected",
+                "Robot cannot move through obstacle!"
+            )
+            return
+
+        self.x = new_x
+        self.y = new_y
+
+        self.canvas.coords(
+            self.robot,
+            self.x - self.radius,
+            self.y - self.radius,
+            self.x + self.radius,
+            self.y + self.radius
+        )
+
+        self.canvas.coords(
+            self.arrow,
+            self.x,
+            self.y,
+            self.x + dx,
+            self.y + dy
+        )
+
+        self.position_label.config(
+            text=f"Position: ({self.x}, {self.y})"
+        )
+
+        self.status_label.config(
+            text="✅ Moving Safely",
+            fg="green"
+        )
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = RobotLocalization(root)
+    root.mainloop()
